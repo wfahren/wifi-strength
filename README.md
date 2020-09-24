@@ -3,7 +3,7 @@ Small shell script to scan for 802.11 masters (APs) or monitor a link with text 
 
 Script Dedency: B{ASH} like shell and iw. No other package requirements.
 
- The SSID and signal strenth are from iw output, others are
+ The SSID and signal strength are from iw output, others are
  calulated like Quality and GOOD/BAD signal.
 
  As root:
