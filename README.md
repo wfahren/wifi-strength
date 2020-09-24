@@ -3,9 +3,9 @@ Small shell script to scan for 802.11 masters (APs) or monitor a link with text 
 
 
 
-Usage: wifi-strength [options] <interface>
+Usage: wifi-strength [options] \<interface\>
 
-<interface>  The interface to monitor. 
+\<interface\>  The interface to monitor. 
 
 [options]
 
