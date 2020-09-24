@@ -1,7 +1,18 @@
 # wifi-strength.sh
 Small shell script to scan for 802.11 masters (APs) or monitor a link with text based bar graph.
 
+Script Dedency: B{ASH} like shell and iw. No other package requirements.
 
+ The SSID and signal strenth are from iw output, others are
+ calulated like Quality and GOOD/BAD signal.
+
+ As root:
+  sh wifi-strenght.sh -h
+
+ As normanl user:
+  sudo bash wifi-strenght.sh -h
+
+From help;
 
 Usage: wifi-strength [options] \<interface\>
 
