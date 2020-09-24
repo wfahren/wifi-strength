@@ -1,5 +1,5 @@
 # wifi-strength.sh
-Small shell script to scan for 802.11 masters (APs) or monitor a link with text based bar graph.
+<h4>Small shell script to scan for 802.11 masters (APs) or monitor a link with text based bar graph.</h2>
 
 Script Dedency: B{ASH} like shell and iw. No other package requirements.
 
