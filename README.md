@@ -16,7 +16,7 @@ Script Dedency: B{ASH} like shell and iw. No other package requirements.
 
 From help;
 
-Usage: wifi-strength [options] \<interface\>
+Usage: wifi-strength.sh [options] \<interface\>
 
 \<interface\>  The interface to monitor. 
 
@@ -32,13 +32,13 @@ Usage: wifi-strength [options] \<interface\>
 Example:
   Scan for "masters" on interface wlan1;
 
-	wifi-strength wlan1
+	wifi-strength.sh wlan1
 
   Scan for "masters" on wlan1 set strength bar length to 80 
   and sort SSID's strongest to weakest signal;
 
-	wifi-strength -l 80 -s wlan1
+	wifi-strength.sh -l 80 -s wlan1
 
   Monitor with bar graph on interface wlan1
 
-	wifi-strength -l 75 -m wlan1
+	wifi-strength.sh -l 75 -m wlan1
