@@ -26,8 +26,6 @@ Usage: wifi-strength.sh [options] \<interface\>
   	-s	Sort scan results.
   	-f	Force monitoring even if interface does not exist.
   	-l	Length of strenght bar, range 1-100, Default 50
-  	-bc	Bar strenght character use quotes, Default "#"
-  	-bf	Bar fill character use quotes, Default Space " "
 
 Example:
   Scan for "masters" on interface wlan1;
