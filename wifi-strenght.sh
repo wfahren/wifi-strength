@@ -8,7 +8,7 @@
 #
 # Script Dedency: B{ASH} like shell and iw. No other package requirements.
 #
-# The SSID and signal strength are from iw output, others are
+# The SSID and signal strenth are from iw output, others are
 # calulated like Quality and GOOD/BAD signal.
 #
 # As root:
@@ -23,6 +23,7 @@ strenght_str='#'  # default pound sign
 bar_len='50'      # default 50
 bar_fill_char=' ' # default space
 sort_data=0       # sort scan resullts best signal to worst
+num_lines=''
 
 #must provide the network interface, wlan0 for example
 if [ $# -lt 1 ]; then
@@ -50,6 +51,10 @@ parse_options() {
                 scan=0
                 shift
                 ;;
+            -n)
+                num_lines="$2"
+                shift
+                ;;
             -f)
                 force=1
                 shift
@@ -61,18 +66,6 @@ parse_options() {
             -l)
                 if [ $(echo $2 | egrep '^[1-9][0-9]?$|^100$') ]; then bar_len="$2"; fi
                 shift
-                ;;
-            -bc)
-                if [ ${#2} = 1 ]; then
-                    strenght_str="$2"
-                    shift
-                fi
-                ;;
-            -bf)
-                if [ ${#2} = 1 ]; then
-                    bar_fill_char="$2"
-                    shift
-                fi
                 ;;
             *)
                 shift
@@ -98,10 +91,9 @@ Usage: $script [options] <interface>
 [options]
   -m\tMonitor link signal strenght.
   -s\tSort scan results.
+  -n\tDisplay x number of lines
   -f\tForce monitoring even if interface does not exist.
   -l\tLength of strenght bar, range 1-100, Default 50
-  -bc\tBar strenght character use quotes, Default \"#\"
-  -bf\tBar fill character use quotes, Default Space \" \"\n
 Example:
   Scan for \"masters\" on interface wlan1;
 
@@ -205,6 +197,7 @@ parse_scan() {
                     line="$rssi $freq $ssid"
                     eval "line${n}='$line'"
                 else
+                    if [ $num_lines ] && [ $n -gt $num_lines ]; then break; fi
                     get_output $rssi $ssid $freq
                 fi
 
