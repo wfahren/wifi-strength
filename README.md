@@ -24,6 +24,7 @@ Usage: wifi-strength.sh [options] \<interface\>
 
 	-m	Monitor link signal strenght.
   	-s	Sort scan results.
+	-n	Display x number of lines
   	-f	Force monitoring even if interface does not exist.
   	-l	Length of strenght bar, range 1-100, Default 50
 
