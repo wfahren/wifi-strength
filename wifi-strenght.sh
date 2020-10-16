@@ -6,27 +6,28 @@
 #Version 1.1v 09/7/2020
 #2020 Bill Fahrenkrug -  bill.fahrenkrug@gmail.com
 #
-# Script Dedency: B{ASH} like shell and iw. No other package requirements.
+# Script Dependency: B{ASH} like shell and iw. No other package requirements.
 #
-# The SSID and signal strenth are from iw output, others are
-# calulated like Quality and GOOD/BAD signal.
+# The SSID and signal strength are from iw output, others are
+# calculated like Quality and GOOD/BAD signal.
 #
 # As root:
-#  sh wifi-strenght.sh -h
+#  sh wifi-strength.sh -h
 #
-# As normanl user:
-#  sudo bash wifi-strenght.sh -h
+# As normal user:
+#  sudo bash wifi-strength.sh -h
 #
 
 # Set Defaults
 strenght_str='#'  # default pound sign
 bar_len='50'      # default 50
 bar_fill_char=' ' # default space
-sort_data=0       # sort scan resullts best signal to worst
+sort_data=0       # sort scan results best signal to worst
 num_lines=''
 
 #must provide the network interface, wlan0 for example
 if [ $# -lt 1 ]; then
+    # shellcheck disable=SC2039
     echo -ne "
  Usage: \"$(basename -- "$0") [options] [interface]\"
  -- for example; 
@@ -38,10 +39,11 @@ if [ $# -lt 1 ]; then
     exit
 fi
 
-# Parse command line options and ignore invald.
+# Parse command line options and ignore invalid.
 parse_options() {
 
-    for arg in $@; do
+
+    for arg in "$@"; do
 
         case "$arg" in
             -h)
@@ -89,17 +91,17 @@ Usage: $script [options] <interface>
 <interface>  The interface to monitor. 
 
 [options]
-  -m\tMonitor link signal strenght.
+  -m\tMonitor link signal strength.
   -s\tSort scan results.
   -n\tDisplay x number of lines
   -f\tForce monitoring even if interface does not exist.
-  -l\tLength of strenght bar, range 1-100, Default 50
+  -l\tLength of strength bar, range 1-100, Default 50
 Example:
   Scan for \"masters\" on interface wlan1;
 
 \t$script wlan1
 
-  Scan for \"masters\" on wlan1 set strength bar length to 80 
+  Scan for \"masters\" on wlan1 set strength bar length to 80
   and sort SSID's strongest to weakest signal;
 
 \t$script -l 80 -s wlan1
@@ -121,13 +123,13 @@ get_strength_bar() {
     fill_char=$bar_fill_char
     num=$2
     len=$3
-    # Calulate number of char(s) for strength part of bar
+    # Calculate number of char(s) for strength part of bar
     num_char=$(awk "BEGIN {printf \"%.0f\", $num/100*$len}")
-    # Calulate number of char(s) to fill the remaining part of the bar.
+    # Calculate number of char(s) to fill the remaining part of the bar.
     num_fill=$((len - num_char))
     v=$(printf "%${num_char}s" "")
     s=$(printf "%${num_fill}s" "")
-    # Combine strenght and fill char(s) to assign $strength
+    # Combine strength and fill char(s) to assign $strength
     strength=${v// /$char}${s// /$fill_char}
 
 }
@@ -140,12 +142,13 @@ check_interface() {
     local msg=''
     local format=''
 
-    while [ ! "$(iw dev $net link 2> /dev/null | grep -e 'Connected')" ]; do
+
+    while [ ! "$(iw dev "$net" link 2> /dev/null | grep -e 'Connected')" ]; do
         n=1
         msg=' Waiting to connect'
         msg_len=${#msg}
         msg_len=$((bar_len - msg_len))
-        if [ -z $t ] || [ $t = 0 ]; then
+        if [ -z "$t" ] || [ "$t" = 0 ]; then
             get_strength_bar '*' '100' $msg_len
             t=1
         else
@@ -171,7 +174,7 @@ parse_scan() {
     rssi=''
     ssid=''
 
-    for args in $@; do
+    for args in "$@"; do
 
         case "$args" in
             freq:)
@@ -179,26 +182,27 @@ parse_scan() {
                 shift
                 ;;
             signal:)
-                rssi=$(printf %.0f $2)
+                rssi=$(printf %.0f "$2")
                 shift
                 ;;
             SSID:)
                 ssid=$2
-                if [ -z $ssid ] || [ $ssid = "freq:" ]; then
+                if [ -z "$ssid" ] || [ "$ssid" = "freq:" ]; then
                     ssid="*empty"
                 elif [ ${#2} -gt 30 ]; then
                     ssid="${ssid:0:26}..."
                 fi
                 # If sorting by signal strength save the station
                 # info in $line{n} variable for sorting else print it.
-                if [ $sort_data = 1 ] && [ $resort = 0 ]; then
-                    #escape octel strings
+                if [ $sort_data = 1 ] && [ "$resort" = 0 ]; then
+                    #escape octal strings
                     ssid=${ssid//\x/\\x}
                     line="$rssi $freq $ssid"
                     eval "line${n}='$line'"
                 else
-                    if [ $num_lines ] && [ $n -gt $num_lines ]; then break; fi
-                    get_output $rssi $ssid $freq
+                    if [ "$num_lines" ] && [ $n -gt "$num_lines" ]; then break; fi
+                    # shellcheck disable=SC2086
+                    get_output "$rssi" $ssid $freq
                 fi
 
                 n=$((n + 1))
@@ -212,7 +216,7 @@ parse_scan() {
     done
 
     # If sorting send to data_sort with $n number of stations.
-    if [ $sort_data = 1 ] && [ $resort = 0 ]; then
+    if [ $sort_data = 1 ] && [ "$resort" = 0 ]; then
         data_sort $n
     else
         resort=0
@@ -228,17 +232,17 @@ data_sort() {
     local output=''
     local sort_items=''
 
-    while [ $n -gt 1 ]; do
+    while [ "$n" -gt 1 ]; do
         n=$((n - 1))
         output=$output$(eval "echo \${line$n}'\n'")
     done
 
-    sort_items=$(echo -ne $output | sort -rn)
+    sort_items=$(echo -ne "$output" | sort -rn)
 
-    reformat $sort_items
+    reformat "$sort_items"
 
     resort=1
-    parse_scan $data
+    parse_scan "$data"
 }
 
 # Re-format the station data to be sent back through the
@@ -248,7 +252,7 @@ reformat() {
     local i
     data=''
 
-    for i in $@; do
+    for i in "$@"; do
         data="$data signal: $1 freq: $2 SSID: $3"
         shift 3
         if [ ! $1 ]; then break; fi
@@ -259,16 +263,16 @@ reformat() {
 # Header for monitor link.
 get_header() {
 
-    iw dev $net link 2> /dev/null | awk 'FNR <= 3'
+    iw dev "$net" link 2> /dev/null | awk 'FNR <= 3'
     header="\n%-"$((bar_len + 10))"s|%8s |%8s | %-10s\n"
-    printf "$header" "" "Siginal" "Quality" "Bandwidth"
+    printf "$header" "" "Signal" "Quality" "Bandwidth"
 
 }
 
-# Take the signal strenght $rssi calulate quality based on below from OpenWRt
-# iwinfo souce with -40 dBm 100% and -110 0%.
+# Take the signal strength $rssi calculate quality based on below from OpenWRt
+# iwinfo source with -40 dBm 100% and -110 0%.
 #
-# GOOD/BAD link quality is based on research, but can easly be change below.
+# GOOD/BAD link quality is based on research, but can easily be change below.
 #
 
 # From openWRT source iwinfo command:
@@ -293,7 +297,7 @@ get_header() {
 ##iwinfo_nl80211.c-2611-          }
 #---------------------------------------------------------------------------------#
 
-# Calulate quality and range from Strong to Bad. Format the output for
+# Calculate quality and range from Strong to Bad. Format the output for
 # display.
 
 get_output() {
@@ -302,26 +306,26 @@ get_output() {
     ssid=$2
     freq=$3
 
-    if [ -z $rssi ] || [ $rssi -ge 0 ]; then
-        strength='No siginal'
-    elif [ $rssi -ge -65 ]; then
+    if [ -z "$rssi" ] || [ "$rssi" -ge 0 ]; then
+        strength='No signal'
+    elif [ "$rssi" -ge -65 ]; then
         link='Strong'
-    elif [ $rssi -ge -73 ]; then
+    elif [ "$rssi" -ge -73 ]; then
         link='Good'
-    elif [ $rssi -ge -80 ]; then
+    elif [ "$rssi" -ge -80 ]; then
         link='Fair'
-    elif [ $rssi -ge -94 ]; then
+    elif [ "$rssi" -ge -94 ]; then
         link='Weak'
     else
         link='Bad'
     fi
 
-    if [ $rssi -lt -110 ]; then
-        siginal='-110'
+    if [ "$rssi" -lt -110 ]; then
+        signal='-110'
     elif [ $rssi -gt -40 ]; then
-        siginal='-40'
+        signal='-40'
     else
-        siginal=$rssi
+        signal=$rssi
     fi
 
     if [ $rssi = 0 ]; then
@@ -329,7 +333,7 @@ get_output() {
         bw=''
         quality=''
     else
-        quality=$(((siginal + 110) * 10 / 7)) # Quality as percentage max -40 min -110
+        quality=$(((signal + 110) * 10 / 7)) # Quality as percentage max -40 min -110
         get_strength_bar $strenght_str $quality $bar_len
     fi
 
@@ -351,10 +355,11 @@ force=0
 scan=1
 resort=0
 
+# shellcheck disable=SC2086
 if [ $# = 1 ] && [ ! $1 = '-h' ]; then
     net=$1
 else
-    parse_options $@
+    parse_options "$@"
 fi
 
 if [ $force != 1 ] && [ ! $(iw dev 2> /dev/null | egrep "Inter.+($net$)" | awk '{print $2}') ]; then
@@ -380,11 +385,13 @@ while true; do
         scan_data=$(iw dev $net scan passive | egrep 'freq:|signal:|SSID:')
         clear
         header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-10s\n"
+        # shellcheck disable=SC2059
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "SSID"
-        parse_scan $scan_data
+        parse_scan "$scan_data"
     else
+        # shellcheck disable=SC2002
         rssi=$(cat /proc/net/wireless | grep $net: | awk '{print $4}' | sed 's/\.//')
-        get_output $rssi
+        get_output "$rssi"
         check_interface
     fi
 
