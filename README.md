@@ -7,8 +7,6 @@ Script Dedency: B{ASH} like shell and iw. No other package requirements.
  calulated like Quality and GOOD to BAD signal.
 
  
-From help;
-
 Usage: wifi-strength.sh [options] \<interface\>
 
 \<interface\>  The interface to monitor. 
