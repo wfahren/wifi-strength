@@ -6,14 +6,7 @@ Script Dedency: B{ASH} like shell and iw. No other package requirements.
  The SSID and signal strength are from iw output, others are
  calulated like Quality and GOOD to BAD signal.
 
- As root:
  
- 	sh wifi-strenght.sh -h
-
- As normanl user:
- 
- 	sudo bash wifi-strenght.sh -h
-
 From help;
 
 Usage: wifi-strength.sh [options] \<interface\>
