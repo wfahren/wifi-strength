@@ -17,7 +17,7 @@ Usage: wifi-strength.sh [options] \<interface\>
   	-s	Sort scan results.
 	-n	Display x number of lines
   	-f	Force monitoring even if interface does not exist.
-  	-l	Length of strenght bar, range 1-100, Default 50
+  	-l	Length of strength bar, range 1-100, Default 50
 
 Example:
   Scan for "masters" on interface wlan1;
