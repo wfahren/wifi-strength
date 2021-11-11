@@ -3,13 +3,13 @@
 
 Script Dedency: B{ASH} like shell and iw. No other package requirements.
 
-There are two scripts .sh and .bash. The .sh was designed to work work openWRT firmware on a wireless router
+There are two scripts .sh and .bash. The .sh was designed to work with openWRT firmware, on a wireless router
 and the .bash for Linux desktop, both need to be ran as user root or sudo. The iw scan command require root access.
-
 
  The SSID and signal strength are from iw output, others are
  calulated like Quality and GOOD to BAD signal.
 
+---
  
 Usage: wifi-strength.sh [options] \<interface\>
 
