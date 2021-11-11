@@ -259,6 +259,7 @@ reformat() {
 # Header for monitor link.
 get_header() {
 
+    echo -ne "Press q to quit\n\n"
     iw dev $net link 2> /dev/null | awk 'FNR <= 3'
     header="\n%-"$((bar_len + 10))"s|%8s |%8s | %-10s\n"
     printf "$header" "" "Signal" "Quality" "Bandwidth"
@@ -372,12 +373,19 @@ fi
 # Loop until ctrl-C
 while true; do
 
-    sleep 1
+    #sleep 1
+    read -r -s -N 1 -t 1 key
+
+    if [ "$key" = q ]; then
+        echo ""
+        break
+    fi
 
     if [ $scan = 1 ]; then
-        sleep 1 # wait one second in between scans
-        echo -ne "\tScanning on $net.................\r"
-        scan_data=$(iw dev $net scan passive | egrep 'freq:|signal:|SSID:')
+        #sleep 1 # wait one second in between scans
+        echo -ne "\nScanning on $net.................\n"
+        echo -ne "\nPress q to quit\n"
+        scan_data=$(iw dev $net scan passive 2>/dev/null | egrep 'freq:|signal:|SSID:')
         if [ "$scan_data" = "" ]; then
             iw dev $net scan passive 2>/dev/null && exit_code=$? || exit_code=$?
             if [ "$exit_code" = 255 ]; then
@@ -389,7 +397,6 @@ while true; do
                 break
          fi
         fi
-
         clear
         header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-10s\n"
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "SSID"
