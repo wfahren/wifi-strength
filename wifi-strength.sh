@@ -259,7 +259,6 @@ reformat() {
 # Header for monitor link.
 get_header() {
 
-    echo -ne "Press q to quit\n\n"
     iw dev $net link 2> /dev/null | awk 'FNR <= 3'
     header="\n%-"$((bar_len + 10))"s|%8s |%8s | %-10s\n"
     printf "$header" "" "Signal" "Quality" "Bandwidth"
@@ -373,30 +372,12 @@ fi
 # Loop until ctrl-C
 while true; do
 
-    #sleep 1
-    read -r -s -N 1 -t 1 key
-
-    if [ "$key" = q ]; then
-        echo ""
-        break
-    fi
+    sleep 1
 
     if [ $scan = 1 ]; then
         #sleep 1 # wait one second in between scans
         echo -ne "\nScanning on $net.................\n"
-        echo -ne "\nPress q to quit\n"
         scan_data=$(iw dev $net scan passive 2>/dev/null | egrep 'freq:|signal:|SSID:')
-        if [ "$scan_data" = "" ]; then
-            iw dev $net scan passive 2>/dev/null && exit_code=$? || exit_code=$?
-            if [ "$exit_code" = 255 ]; then
-                echo -ne "\n\n\tMust be root to run\n"\
-                "\tEither change to user root or use sudo\n\n"
-                break
-            else
-                echo -ne "\n\n\tWireless network card not up\n\n"                
-                break
-         fi
-        fi
         clear
         header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-10s\n"
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "SSID"
