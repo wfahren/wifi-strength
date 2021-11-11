@@ -1,7 +1,11 @@
-# wifi-strength.sh
+# wifi-strength.sh and wifi-strength.bash
 <h4>Small shell script to scan for 802.11 masters (APs) or monitor a link with text based bar graph.</h2>
 
 Script Dedency: B{ASH} like shell and iw. No other package requirements.
+
+There are two scripts .sh and .bash. The .sh was designed to work work openWRT firmware on a wireless router
+and the .bash for Linux desktop, both need to be ran as user root or sudo. The iw scan command require root access.
+
 
  The SSID and signal strength are from iw output, others are
  calulated like Quality and GOOD to BAD signal.
