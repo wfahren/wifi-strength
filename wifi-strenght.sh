@@ -376,8 +376,20 @@ while true; do
 
     if [ $scan = 1 ]; then
         sleep 1 # wait one second in between scans
-        echo -ne " Scanning on $net.................\r"
+        echo -ne "\tScanning on $net.................\r"
         scan_data=$(iw dev $net scan passive | egrep 'freq:|signal:|SSID:')
+        if [ "$scan_data" = "" ]; then
+            iw dev $net scan passive 2>/dev/null && exit_code=$? || exit_code=$?
+            if [ "$exit_code" = 255 ]; then
+                echo -ne "\n\n\tMust be root to run\n"\
+                "\tEither change to user root or use sudo\n\n"
+                break
+            else
+                echo -ne "\n\n\tWireless network card not up\n\n"                
+                break
+         fi
+        fi
+
         clear
         header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-10s\n"
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "SSID"
