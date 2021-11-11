@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 #
-#Filename: wifi-strength.sh
+#File name: wifi-strength.bash
 #Description: This script scans for "masters" and displays wifi signal strength
 # with a text based bar graph.
 #Version 1.1v 09/7/2020
@@ -11,12 +11,9 @@
 # The SSID and signal strength are from iw output, others are
 # calculated like Quality and GOOD/BAD signal.
 #
-# As root:
-#  sh wifi-strength.sh -h
-#
 # As normal user:
 #  sudo bash wifi-strength.sh -h
-#
+#  iw scan command requires root access
 
 # Set Defaults
 strenght_str='#'  # default pound sign
