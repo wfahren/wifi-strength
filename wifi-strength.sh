@@ -347,7 +347,7 @@ while true; do
             get_output "$(echo "$rssi" | awk '{print $2}')"
             sleep 2
         else
-            echo -ne "\n\n\tNot connected.\n"
+            echo -ne "\n\Interface device ""$net"" not connected.\n"
             break
         fi
     fi
