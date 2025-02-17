@@ -126,76 +126,72 @@ get_strength_bar() {
     s=$(printf "%${num_fill}s" "")
     # Combine strength and fill char(s) to assign $strength
     strength=${v// /$char}${s// /$fill_char}
-
 }
 
 # Every second check to make sure we are still connected when monitoring.
 check_interface() {
-
     local n=0
     local msg_len=''
     local msg=''
     local format=''
+    local t=0
 
-    while [ ! "$(iw dev $net link 2> /dev/null | grep -e 'Connected')" ]; do
+    while [ ! "$(iw dev "$net" link 2> /dev/null | grep -e 'Connected')" ]; do
         n=1
         msg=' Waiting to connect'
         msg_len=${#msg}
         msg_len=$((bar_len - msg_len))
-        if [ -z $t ] || [ $t = 0 ]; then
-            get_strength_bar '*' '100' $msg_len
+        if [ -z "$t" ] || [ "$t" = 0 ]; then
+            get_strength_bar '*' '100' "$msg_len"
             t=1
         else
-            get_strength_bar ' ' '100' $msg_len
+            get_strength_bar ' ' '100' "$msg_len"
             t=0
         fi
-        format="%-"$bar_len"s %-45s\r"
+        format="%-${bar_len}s %-45s\r"
         printf "$format" "$msg$strength" ""
         sleep 1
     done
 
-    if [ $n = 1 ]; then get_header; fi
-
+    if [ "$n" = 1 ]; then get_header; fi
 }
 
 #  Parse the signal level, frequency and SSID from "iw dev scan".
 parse_scan() {
-
     local n=1
     local args=''
     local line=''
-    freq=''
-    rssi=''
-    ssid=''
+    local freq=''
+    local rssi=''
+    local ssid=''
 
-    for args in $@; do
-
+    for args in "$@"; do
         case "$args" in
             freq:)
                 freq=$2
                 shift
                 ;;
             signal:)
-                rssi=$(printf %.0f $2)
+                rssi=$(printf %.0f "$2")
                 shift
                 ;;
             SSID:)
                 ssid=$2
-                if [ -z $ssid ] || [ $ssid = "freq:" ]; then
+                if [ -z "$ssid" ] || [ "$ssid" = "freq:" ]; then
                     ssid="*empty"
                 elif [ ${#2} -gt 30 ]; then
                     ssid="${ssid:0:26}..."
                 fi
                 # If sorting by signal strength save the station
                 # info in $line{n} variable for sorting else print it.
-                if [ $sort_data = 1 ] && [ $resort = 0 ]; then
+                if [ "$sort_data" = 1 ] && [ "$resort" = 0 ]; then
                     #escape octel strings
                     ssid=${ssid//\x/\\x}
                     line="$rssi $freq $ssid"
                     eval "line${n}='$line'"
                 else
-                    if [ $num_lines ] && [ $n -gt $num_lines ]; then break; fi
-                    get_output $rssi $ssid $freq
+                    if [ "$num_lines" ] && [ "$n" -gt "$num_lines" ]; then break; fi
+                    get_output "$rssi" "$ssid" "$freq"
                 fi
 
                 n=$((n + 1))
@@ -205,32 +201,29 @@ parse_scan() {
                 shift
                 ;;
         esac
-
     done
 
     # If sorting send to data_sort with $n number of stations.
-    if [ $sort_data = 1 ] && [ $resort = 0 ]; then
-        data_sort $n
+    if [ "$sort_data" = 1 ] && [ "$resort" = 0 ]; then
+        data_sort "$n"
     else
         resort=0
     fi
-
 }
 
 # Take $line{n} variables sort
 # and reformat for parsing again.
 data_sort() {
-
     local n=$1
     local output=''
     local sort_items=''
 
-    while [ $n -gt 1 ]; do
+    while [ "$n" -gt 1 ]; do
         n=$((n - 1))
         output=$output$(eval "echo \${line$n}'\n'")
     done
 
-    sort_items=$(echo -ne $output | sort -rn)
+    sort_items=$(echo -ne "$output" | sort -rn)
 
     reformat $sort_items
 
@@ -241,26 +234,22 @@ data_sort() {
 # Re-format the station data to be sent back through the
 # "parse_scan" function sorted by signal strength.
 reformat() {
-
     local i
     data=''
 
-    for i in $@; do
+    for i in "$@"; do
         data="$data signal: $1 freq: $2 SSID: $3"
         shift 3
-        if [ ! $1 ]; then break; fi
+        if [ ! "$1" ]; then break; fi
     done
-
 }
 
 # Header for monitor link.
 get_header() {
-
     echo -ne "Press q to quit\n\n"
-    iw dev $net link 2> /dev/null | awk 'FNR <= 3'
+    iw dev "$net" link 2> /dev/null | awk 'FNR <= 3'
     header="\n%-"$((bar_len + 10))"s|%8s |%8s | %-10s\n"
     printf "$header" "" "Signal" "Quality" "Bandwidth"
-
 }
 
 # Take the signal strength $rssi calculate quality based on below from OpenWRt
@@ -293,55 +282,50 @@ get_header() {
 
 # Calculate quality and range from Strong to Bad. Format the output for
 # display.
-
 get_output() {
-
     rssi=$1
     ssid=$2
     freq=$3
 
-    if [ -z $rssi ] || [ $rssi -ge 0 ]; then
+    if [ -z "$rssi" ] || [ "$rssi" -ge 0 ]; then
         strength='No signal'
-    elif [ $rssi -ge -65 ]; then
+    elif [ "$rssi" -ge -65 ]; then
         link='Strong'
-    elif [ $rssi -ge -73 ]; then
+    elif [ "$rssi" -ge -73 ]; then
         link='Good'
-    elif [ $rssi -ge -80 ]; then
+    elif [ "$rssi" -ge -80 ]; then
         link='Fair'
-    elif [ $rssi -ge -94 ]; then
+    elif [ "$rssi" -ge -94 ]; then
         link='Weak'
     else
         link='Bad'
     fi
 
-    if [ $rssi -lt -110 ]; then
+    if [ "$rssi" -lt -110 ]; then
         siginal='-110'
-    elif [ $rssi -gt -40 ]; then
+    elif [ "$rssi" -gt -40 ]; then
         siginal='-40'
     else
         siginal=$rssi
     fi
 
-    if [ $rssi = 0 ]; then
+    if [ "$rssi" = 0 ]; then
         link=''
         bw=''
         quality=''
     else
         quality=$(((siginal + 110) * 10 / 7)) # Quality as percentage max -40 min -110
-        get_strength_bar $strenght_str $quality $bar_len
+        get_strength_bar "$strenght_str" "$quality" "$bar_len"
     fi
 
-    if [ $scan = 0 ]; then
-        bw=$(iw $net link 2> /dev/null | grep "tx bitrate:" | awk '{print $3,$4}')
-        format="[%-"$bar_len"s] %6s |%8s |%7s%% | %-15s\r"
+    if [ "$scan" = 0 ]; then
+        bw=$(iw "$net" link 2> /dev/null | grep "tx bitrate:" | awk '{print $3,$4}')
+        format="[%-${bar_len}s] %6s |%8s |%7s%% | %-15s\r"
         printf "$format" "$strength" "$link" "$rssi" "$quality" "$bw"
-
     else
-        format="[%-"$bar_len"s] %6s |%5s |%7s%% |%10s | %-15s\n"
+        format="[%-${bar_len}s] %6s |%5s |%7s%% |%10s | %-15s\n"
         printf "$format" "$strength" "$link" "$rssi" "$quality" "$freq" "$ssid"
-
     fi
-
 }
 
 #main
@@ -349,19 +333,19 @@ force=0
 scan=1
 resort=0
 
-if [ $# = 1 ] && [ ! $1 = '-h' ]; then
+if [ $# = 1 ] && [ ! "$1" = '-h' ]; then
     net=$1
 else
-    parse_options $@
+    parse_options "$@"
 fi
 
-if [ $force != 1 ] && [ ! $(iw dev 2> /dev/null | egrep "Inter.+($net$)" | awk '{print $2}') ]; then
+if [ "$force" != 1 ] && [ ! "$(iw dev 2> /dev/null | egrep "Inter.+($net$)" | awk '{print $2}')" ]; then
     echo -ne "\nNetwork interface not found.\nUse -f option to force\n\n"
     net=''
     exit
 fi
 
-if [ $scan = 0 ]; then
+if [ "$scan" = 0 ]; then
     clear
     get_header
     check_interface
@@ -369,8 +353,6 @@ fi
 
 # Loop until ctrl-C
 while true; do
-
-    #sleep 1
     read -r -s -N 1 -t 1 key
 
     if [ "$key" = q ]; then
@@ -378,13 +360,12 @@ while true; do
         break
     fi
 
-    if [ $scan = 1 ]; then
-        #sleep 1 # wait one second in between scans
+    if [ "$scan" = 1 ]; then
         echo -ne "\nScanning on $net.................\n"
         echo -ne "\nPress q to quit\n"
-        scan_data=$(iw dev $net scan passive 2>/dev/null | egrep 'freq:|signal:|SSID:')
+        scan_data=$(iw dev "$net" scan passive 2>/dev/null | egrep 'freq:|signal:|SSID:')
         if [ "$scan_data" = "" ]; then
-            iw dev $net scan passive 2>/dev/null && exit_code=$? || exit_code=$?
+            iw dev "$net" scan passive 2>/dev/null && exit_code=$? || exit_code=$?
             if [ "$exit_code" = 255 ]; then
                 echo -ne "\n\n\tMust be root to run\n"\
                 "\tEither change to user root or use sudo\n\n"
@@ -392,18 +373,17 @@ while true; do
             else
                 echo -ne "\n\n\tWireless network card not up\n\n"                
                 break
-         fi
+            fi
         fi
         clear
         header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-10s\n"
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "SSID"
         parse_scan $scan_data
     else
-        rssi=$(cat /proc/net/wireless | grep $net: | awk '{print $4}' | sed 's/\.//')
-        get_output $rssi
+        rssi=$(cat /proc/net/wireless | grep "$net:" | awk '{print $4}' | sed 's/\.//')
+        get_output "$rssi"
         check_interface
     fi
-
 done
 
 exit
