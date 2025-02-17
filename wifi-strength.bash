@@ -61,7 +61,7 @@ parse_options() {
                 shift
                 ;;
             -l)
-                if [ $(echo $2 | egrep '^[1-9][0-9]?$|^100$') ]; then bar_len="$2"; fi
+                if [ $(echo $2 | grep  -E '^[1-9][0-9]?$|^100$') ]; then bar_len="$2"; fi
                 shift
                 ;;
             *)
@@ -339,7 +339,7 @@ else
     parse_options "$@"
 fi
 
-if [ "$force" != 1 ] && [ ! "$(iw dev 2> /dev/null | egrep "Inter.+($net$)" | awk '{print $2}')" ]; then
+if [ "$force" != 1 ] && [ ! "$(iw dev 2> /dev/null | grep  -E "Inter.+($net$)" | awk '{print $2}')" ]; then
     echo -ne "\nNetwork interface not found.\nUse -f option to force\n\n"
     net=''
     exit
@@ -363,7 +363,8 @@ while true; do
     if [ "$scan" = 1 ]; then
         echo -ne "\nScanning on $net.................\n"
         echo -ne "\nPress q to quit\n"
-        scan_data=$(iw dev "$net" scan passive 2>/dev/null | egrep 'freq:|signal:|SSID:')
+        scan_data=$(iw dev "$net" scan passive 2>/dev/null | grep  -E 'freq:|signal:|SSID:')
+        sleep 5 # give time for scan to complete
         if [ "$scan_data" = "" ]; then
             iw dev "$net" scan passive 2>/dev/null && exit_code=$? || exit_code=$?
             if [ "$exit_code" = 255 ]; then
