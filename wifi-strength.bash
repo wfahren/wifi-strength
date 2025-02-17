@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 #File name: wifi-strength.bash
 #Description: This script scans for "masters" and displays wifi signal strength
@@ -19,8 +19,8 @@
 strenght_str='#'  # default pound sign
 bar_len='50'      # default 50
 bar_fill_char=' ' # default space
-sort_data=0       # sort scan results best signal to worst
-num_lines=''
+sort_data=1       # sort scan results best signal to worst
+num_lines=''      # number of lines to display
 
 #must provide the network interface, wlan0 for example
 if [ $# -lt 1 ]; then
@@ -38,7 +38,7 @@ fi
 # Parse command line options and ignore invalid.
 parse_options() {
 
-    for arg in $@; do
+    for arg in "$@"; do
 
         case "$arg" in
             -h)
@@ -61,7 +61,7 @@ parse_options() {
                 shift
                 ;;
             -l)
-                if [ $(echo $2 | grep  -E '^[1-9][0-9]?$|^100$') ]; then bar_len="$2"; fi
+                if  echo "$2" | grep -qE "^[1-9][0-9]?$|^100$"; then bar_len="$2"; fi
                 shift
                 ;;
             *)
@@ -87,7 +87,6 @@ Usage: $script [options] <interface>
 
 [options]
   -m\tMonitor link signal strength.
-  -s\tSort scan results.
   -n\tDisplay x number of lines
   -f\tForce monitoring even if interface does not exist.
   -l\tLength of strength bar, range 1-100, Default 50
@@ -96,14 +95,13 @@ Example:
 
 \t$script wlan1
 
-  Scan for \"masters\" on wlan1 set strength bar length to 80 
-  and sort SSID's strongest to weakest signal;
+  Scan AP's on wlan1 set strength bar length to 10;
 
-\t$script -l 80 -s wlan1
+\t$script -l 10 wlan1
 
-  Monitor with bar graph on interface wlan1
+  Monitor client connetion on interface wlan1
 
-\t$script -l 75 -m wlan1
+\t$script -m wlan1
 
 \nInterfaces found:
 "
@@ -128,34 +126,6 @@ get_strength_bar() {
     strength=${v// /$char}${s// /$fill_char}
 }
 
-# Every second check to make sure we are still connected when monitoring.
-check_interface() {
-    local n=0
-    local msg_len=''
-    local msg=''
-    local format=''
-    local t=0
-
-    while [ ! "$(iw dev "$net" link 2> /dev/null | grep -e 'Connected')" ]; do
-        n=1
-        msg=' Waiting to connect'
-        msg_len=${#msg}
-        msg_len=$((bar_len - msg_len))
-        if [ -z "$t" ] || [ "$t" = 0 ]; then
-            get_strength_bar '*' '100' "$msg_len"
-            t=1
-        else
-            get_strength_bar ' ' '100' "$msg_len"
-            t=0
-        fi
-        format="%-${bar_len}s %-45s\r"
-        printf "$format" "$msg$strength" ""
-        sleep 1
-    done
-
-    if [ "$n" = 1 ]; then get_header; fi
-}
-
 #  Parse the signal level, frequency and SSID from "iw dev scan".
 parse_scan() {
     local n=1
@@ -178,7 +148,7 @@ parse_scan() {
             SSID:)
                 ssid=$2
                 if [ -z "$ssid" ] || [ "$ssid" = "freq:" ]; then
-                    ssid="*empty"
+                    ssid="hidden"
                 elif [ ${#2} -gt 30 ]; then
                     ssid="${ssid:0:26}..."
                 fi
@@ -211,6 +181,19 @@ parse_scan() {
     fi
 }
 
+# Re-format the station data to be sent back through the
+# "parse_scan" function sorted by signal strength.
+reformat() {
+    local i
+    data=''
+
+    for i in "$@"; do
+        data="$data signal: $1 freq: $2 SSID: $3"
+        shift 3
+        if [ ! "$1" ]; then break; fi
+    done
+}
+
 # Take $line{n} variables sort
 # and reformat for parsing again.
 data_sort() {
@@ -231,22 +214,10 @@ data_sort() {
     parse_scan $data
 }
 
-# Re-format the station data to be sent back through the
-# "parse_scan" function sorted by signal strength.
-reformat() {
-    local i
-    data=''
-
-    for i in "$@"; do
-        data="$data signal: $1 freq: $2 SSID: $3"
-        shift 3
-        if [ ! "$1" ]; then break; fi
-    done
-}
 
 # Header for monitor link.
 get_header() {
-    echo -ne "Press q to quit\n\n"
+    echo -ne "Press ctrl-c to quit\n\n"
     iw dev "$net" link 2> /dev/null | awk 'FNR <= 3'
     header="\n%-"$((bar_len + 10))"s|%8s |%8s | %-10s\n"
     printf "$header" "" "Signal" "Quality" "Bandwidth"
@@ -345,24 +316,12 @@ if [ "$force" != 1 ] && [ ! "$(iw dev 2> /dev/null | grep  -E "Inter.+($net$)" |
     exit
 fi
 
-if [ "$scan" = 0 ]; then
-    clear
-    get_header
-    check_interface
-fi
-
 # Loop until ctrl-C
 while true; do
-    read -r -s -N 1 -t 1 key
-
-    if [ "$key" = q ]; then
-        echo ""
-        break
-    fi
 
     if [ "$scan" = 1 ]; then
         echo -ne "\nScanning on $net.................\n"
-        echo -ne "\nPress q to quit\n"
+        echo -ne "\nPress ctrl-c to quit\n"
         scan_data=$(iw dev "$net" scan passive 2>/dev/null | grep  -E 'freq:|signal:|SSID:')
         sleep 5 # give time for scan to complete
         if [ "$scan_data" = "" ]; then
@@ -381,10 +340,18 @@ while true; do
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "SSID"
         parse_scan $scan_data
     else
-        rssi=$(cat /proc/net/wireless | grep "$net:" | awk '{print $4}' | sed 's/\.//')
-        get_output "$rssi"
-        check_interface
+        rssi=$(iw dev "$net" link | grep signal || echo $?)
+        if [ "$rssi" != "1" ]; then
+            clear
+            get_header
+            get_output "$(echo "$rssi" | awk '{print $2}')"
+            sleep 2
+        else
+            echo -ne "\n\n\tNot connected.\n"
+            break
+        fi
     fi
+
 done
 
 exit
