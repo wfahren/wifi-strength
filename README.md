@@ -31,7 +31,7 @@ Example:
 
 	wifi-strength.sh -l 80 wlan1
 
-  Monitor station connection on interface wlan1 (coneection to another AP)
+  Monitor station connection on interface wlan1 (connected to another AP)
 
 	wifi-strength.sh -m wlan1
 
