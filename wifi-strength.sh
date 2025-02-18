@@ -38,9 +38,11 @@ fi
 # Parse command line options and ignore invalid.
 parse_options() {
 
-    for arg in "$@"; do
+    #for arg in "$@"; do
+    while [[ $# -gt 1 ]]; do
+    key="$1"
 
-        case "$arg" in
+        case "$key" in
             -h)
                 usage_txt
                 ;;
@@ -51,9 +53,6 @@ parse_options() {
             -n)
                 num_lines="$2"
                 shift
-                ;;
-            -f)
-                force=1
                 shift
                 ;;
             -s)
@@ -63,16 +62,20 @@ parse_options() {
             -l)
                 if  echo "$2" | grep -qE "^[1-9][0-9]?$|^100$"; then bar_len="$2"; fi
                 shift
+                shift
                 ;;
             *)
-                shift
+                echo -ne "\n\nInvalid option: $key\n\n"
+                usage_txt
                 ;;
         esac
 
         #Last arg is the network interface, required.
-        net=$arg
+        #net=$arg
 
     done
+
+    net="${1:-}"
 
 }
 
@@ -88,7 +91,6 @@ Usage: $script [options] <interface>
 [options]
   -m\tMonitor link signal strength.
   -n\tDisplay x number of lines
-  -f\tForce monitoring even if interface does not exist.
   -l\tLength of strength bar, range 1-100, Default 50
 Example:
   Scan for \"masters\" on interface wlan1;
