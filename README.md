@@ -1,4 +1,4 @@
-# wifi-strength.sh and wifi-strength.bash
+# wifi-strength.sh
 <h4>Small shell script to scan for 802.11 AP's or monitor a connected link with text based bar graph.</h2>
 
 Script Dedency: B{ASH} like shell and iw. No other package requirements. Must be ran as user root or sudo. The iw scan command requires root access.
