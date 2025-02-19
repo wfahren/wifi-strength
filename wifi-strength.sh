@@ -285,7 +285,7 @@ while true; do
     if [ "$scan" = 1 ]; then
         echo -ne "\nScanning on $net.................\n"
         echo -ne "\nPress ctrl-c to quit\n"
-        scan_data=$(iw dev "$net" scan lowpri passive 2>/dev/null || echo $?) 
+        scan_data=$(iw dev "$net" scan passive 2>/dev/null || echo $?) 
         sleep 5 # give time for scan to complete
         if [ ${#scan_data} -gt 3 ]; then
             scan_data=$(echo "$scan_data" | grep  -E 'freq:|signal:|SSID:|^BSS' )
