@@ -41,7 +41,7 @@ fi
 parse_options() {
 
     #for arg in "$@"; do
-    while [ $# -gt 1 ]; do
+    while [ $# -gt 0 ]; do
     key="$1"
 
         case "$key" in
@@ -285,8 +285,8 @@ get_output() {
 
 #main
 
-
-if [ $# = 1 ] && [ ! "$1" = '-h' ]; then
+echo $1
+if [ $# = 1 ] && [ ! "$1" = "-h" ]; then
     net=$1
 else
     parse_options "$@"
