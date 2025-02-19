@@ -39,7 +39,7 @@ fi
 parse_options() {
 
     #for arg in "$@"; do
-    while [[ $# -gt 1 ]]; do
+    while [ $# -gt 1 ]; do
     key="$1"
 
         case "$key" in
@@ -53,10 +53,6 @@ parse_options() {
             -n)
                 num_lines="$2"
                 shift
-                shift
-                ;;
-            -s)
-                sort_data=1
                 shift
                 ;;
             -l)
@@ -279,12 +275,6 @@ if [ $# = 1 ] && [ ! "$1" = '-h' ]; then
     net=$1
 else
     parse_options "$@"
-fi
-
-if [ "$force" != 1 ] && [ ! "$(iw dev 2> /dev/null | grep  -E "Inter.+($net$)" | awk '{print $2}')" ]; then
-    echo -ne "\nNetwork interface not found.\nUse -f option to force\n\n"
-    net=''
-    exit
 fi
 
 # Loop until ctrl-C
