@@ -279,6 +279,12 @@ else
     parse_options "$@"
 fi
 
+#check that interface is valid
+if ! iw dev 2> /dev/null | grep -q "Interface $net"; then
+    echo -ne "\n\tInterface $net not found\n\n"
+    exit
+fi
+
 # Loop until ctrl-C
 while true; do
 
