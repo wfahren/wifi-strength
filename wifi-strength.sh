@@ -19,8 +19,8 @@
 strenght_str='#'  # default pound sign
 bar_len='50'      # default 50
 bar_fill_char=' ' # default space
-sort_data=1       # sort scan results best signal to worst
 num_lines=''      # number of lines to display
+scan=1            # scan for AP's
 
 #must provide the network interface, wlan0 for example
 if [ $# -lt 1 ]; then
@@ -142,13 +142,18 @@ parse_scan() {
         # Clean the line
         line=$(clean_string "$line")
         # Parse based on key
+        echo "$line" | grep -q "^BSS" && data_bssid=$(echo "$line" | grep -oE '[0-9a-fA-F:]{17}')
         echo "$line" | grep -q "^freq:" && data_freq=$(echo "$line" | awk '{print int($2)}')
         echo "$line" | grep -q "^signal:" && data_signal=$(echo "$line" | awk '{print int($2)}')
         echo "$line" | grep -q "^SSID:" && data_ssid=$(echo "$line" | cut -d' ' -f2-)
 
-        # If all three entries are present, append to results and reset
-        if [ -n "$data_freq" ] && [ -n "$data_signal" ] && [ -n "$data_ssid" ]; then
-            printf "%s,%s,%s\n" "$data_signal" "$data_freq" "$data_ssid" >> /tmp/results.$$
+        # Handle case where SSID is missing, and set to <hidden>       
+        [ -z "$data_ssid" ] && data_ssid="<hidden>"
+
+        # If all four entries are present, append to results and reset
+        if [ -n "$data_bssid" ] && [ -n "$data_freq" ] && [ -n "$data_signal" ] && [ -n "$data_ssid" ]; then
+            printf "%s,%s,%s,%s\n" "$data_signal" "$data_freq" "$data_bssid" "$data_ssid" >> /tmp/results.$$
+            data_bssid=""
             data_freq=""
             data_signal=""
             data_ssid=""
@@ -162,9 +167,7 @@ parse_scan() {
         rm -f /tmp/results.$$
 
         # Process and print sorted results
-        echo "$sorted_results" | while IFS=',' read s f ss; do
-            # Handle case where SSID is missing
-            [ -z "$ss" ] && ss="<hidden>"
+        echo "$sorted_results" | while IFS=',' read s f bs ss; do
 
             # Truncate SSID if longer than 30 characters
             ss_len=$(echo -n "$ss" | wc -c)
@@ -172,7 +175,7 @@ parse_scan() {
 
             # Print the output if all fields are present
             if [ "$num_lines" ] && [ "$n" -gt "$num_lines" ]; then break; fi
-            [ -n "$s" ] && [ -n "$f" ] && get_output "$s" "$ss" "$f"
+            [ -n "$s" ] && [ -n "$f" ] && get_output "$s" "$ss" "$f" "$bs"
             # uncomment to test scan parse only
             # [ -n "$s" ] && [ -n "$f" ] && echo "signal: $s, freq: $f, SSID: $ss"
             
@@ -224,6 +227,7 @@ get_output() {
     rssi=$1
     ssid=$2
     freq=$3
+    bssid=$4
 
     if [ -z "$rssi" ] || [ "$rssi" -ge 0 ]; then
         strength='No signal'
@@ -261,15 +265,13 @@ get_output() {
         format="[%-${bar_len}s] %6s |%8s |%7s%% | %-15s\r"
         printf "$format" "$strength" "$link" "$rssi" "$quality" "$bw"
     else
-        format="[%-${bar_len}s] %6s |%5s |%7s%% |%10s | %-15s\n"
-        printf "$format" "$strength" "$link" "$rssi" "$quality" "$freq" "$ssid"
+        format="[%-${bar_len}s] %6s |%5s |%7s%% |%10s | %s | %-15s\n"
+        printf "$format" "$strength" "$link" "$rssi" "$quality" "$freq" "$bssid" "$ssid"
     fi
 }
 
 #main
-force=0
-scan=1
-resort=0
+
 
 if [ $# = 1 ] && [ ! "$1" = '-h' ]; then
     net=$1
@@ -283,24 +285,24 @@ while true; do
     if [ "$scan" = 1 ]; then
         echo -ne "\nScanning on $net.................\n"
         echo -ne "\nPress ctrl-c to quit\n"
-        scan_data=$(iw dev "$net" scan passive 2>/dev/null | grep  -E 'freq:|signal:|SSID:')
+        scan_data=$(iw dev "$net" scan lowpri passive 2>/dev/null || echo $?) 
         sleep 5 # give time for scan to complete
-        if [ "$scan_data" = "" ]; then
-            iw dev "$net" scan passive 2>/dev/null && exit_code=$? || exit_code=$?
-            if [ "$exit_code" = 255 ]; then
-                echo -ne "\n\n\tMust be root to run\n"\
-                "\tEither change to user root or use sudo\n\n"
-                break
-            else
-                echo -ne "\n\n\tWireless network card not up\n\n"                
-                break
-            fi
-        fi
+        if [ ${#scan_data} -gt 3 ]; then
+            scan_data=$(echo "$scan_data" | grep  -E 'freq:|signal:|SSID:|^BSS' )
+        elif [ "$scan_data" -eq "255" ]; then
+            echo -ne "\n\n\tMust be root to run\n"\
+            "\tEither change to user root or use sudo\n\n"
+            break
+        else
+            echo -ne "\n\n\tWireless interface busy trying again in 5 seconds\n\n"
+            sleep 5
+            continue
+         fi
         clear
-        header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-10s\n"
-        printf "$header" "Signal" "dBm" "Quality" "Frequency" "SSID"
+        header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-17s | %-10s\n"
+        printf "$header" "Signal" "dBm" "Quality" "Frequency" "BSSID" "SSID"
         # Parse the scan data
-    echo "$scan_data" | parse_scan
+        echo "$scan_data" | parse_scan
     else
         rssi=$(iw dev "$net" link | grep signal || echo $?)
         if [ "$rssi" != "1" ]; then
