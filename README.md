@@ -11,11 +11,11 @@ Usage: wifi-strength.sh [options] \<interface\>
 
 [options]
 
-  -m	Monitor link signal strength.
-  -n	Display x number of lines
-  -i	Set scan interval, default 5 seconds
-  -l	Length of strength bar, range 1-100, Default 50
-  -p	Passive scan, default active scan
+  	-m	Monitor link signal strength.
+  	-n	Display x number of lines
+  	-i	Set scan interval, default 5 seconds
+  	-l	Length of strength bar, range 1-100, Default 50
+  	-p	Passive scan, default active scan
 
 Example:
   Scan AP's on interface wlan1;
