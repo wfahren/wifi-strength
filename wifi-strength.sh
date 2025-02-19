@@ -21,6 +21,8 @@ bar_len='50'      # default 50
 bar_fill_char=' ' # default space
 num_lines=''      # number of lines to display
 scan=1            # scan for AP's
+passive=''        # scan type, defaultt active scan
+scan_interval='5' # scan interval, default 5 seconds
 
 #must provide the network interface, wlan0 for example
 if [ $# -lt 1 ]; then
@@ -55,9 +57,18 @@ parse_options() {
                 shift
                 shift
                 ;;
+            -i)
+                scan_interval="$2"
+                shift
+                shift
+                ;;
             -l)
                 if  echo "$2" | grep -qE "^[1-9][0-9]?$|^100$"; then bar_len="$2"; fi
                 shift
+                shift
+                ;;
+            -p)
+                passive="passive"
                 shift
                 ;;
             *)
@@ -87,7 +98,9 @@ Usage: $script [options] <interface>
 [options]
   -m\tMonitor link signal strength.
   -n\tDisplay x number of lines
+  -i\tSet scan interval, default 5 seconds
   -l\tLength of strength bar, range 1-100, Default 50
+  -p\tPassive scan, default active scan
 Example:
   Scan for \"masters\" on interface wlan1;
 
@@ -291,8 +304,8 @@ while true; do
     if [ "$scan" = 1 ]; then
         echo -ne "\nScanning on $net.................\n"
         echo -ne "\nPress ctrl-c to quit\n"
-        scan_data=$(iw dev "$net" scan passive 2>/dev/null || echo $?) 
-        sleep 5 # give time for scan to complete
+        scan_data=$(iw dev "$net" scan "$passive" 2>/dev/null || echo $?) 
+        sleep "$scan_interval" # give time for scan to complete
         if [ ${#scan_data} -gt 3 ]; then
             scan_data=$(echo "$scan_data" | grep  -E 'freq:|signal:|SSID:|^BSS' )
         elif [ "$scan_data" -eq "255" ]; then
