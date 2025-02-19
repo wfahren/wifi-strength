@@ -129,93 +129,62 @@ get_strength_bar() {
 }
 
 #  Parse the signal level, frequency and SSID from "iw dev scan".
+clean_string() {
+    local string="$1"
+    echo "$string" | tr -d '\r\n' | sed 's/^[ \t]*//'
+}
+
+# Function to parse options from scan data
 parse_scan() {
-    local n=1
-    local args=''
-    local line=''
-    local freq=''
-    local rssi=''
-    local ssid=''
+    data_freq=""
+    data_signal=""
+    data_ssid=""
+    n=1
 
-    for args in "$@"; do
-        case "$args" in
-            freq:)
-                freq=$2
-                shift
-                ;;
-            signal:)
-                rssi=$(printf %.0f "$2")
-                shift
-                ;;
-            SSID:)
-                ssid=$2
-                if [ -z "$ssid" ] || [ "$ssid" = "freq:" ]; then
-                    ssid="hidden"
-                elif [ ${#2} -gt 30 ]; then
-                    ssid="${ssid:0:26}..."
-                fi
-                # If sorting by signal strength save the station
-                # info in $line{n} variable for sorting else print it.
-                if [ "$sort_data" = 1 ] && [ "$resort" = 0 ]; then
-                    #escape octel strings
-                    ssid=${ssid//\x/\\x}
-                    line="$rssi $freq $ssid"
-                    eval "line${n}='$line'"
-                else
-                    if [ "$num_lines" ] && [ "$n" -gt "$num_lines" ]; then break; fi
-                    get_output "$rssi" "$ssid" "$freq"
-                fi
+    # Read each line from the input (scan data)
+    while IFS= read line; do
+        # Clean the line
+        line=$(clean_string "$line")
+        # Parse based on key
+        echo "$line" | grep -q "^freq:" && data_freq=$(echo "$line" | awk '{print int($2)}')
+        echo "$line" | grep -q "^signal:" && data_signal=$(echo "$line" | awk '{print int($2)}')
+        echo "$line" | grep -q "^SSID:" && data_ssid=$(echo "$line" | cut -d' ' -f2-)
 
-                n=$((n + 1))
-                shift
-                ;;
-            *)
-                shift
-                ;;
-        esac
+        # If all three entries are present, append to results and reset
+        if [ -n "$data_freq" ] && [ -n "$data_signal" ] && [ -n "$data_ssid" ]; then
+            printf "%s,%s,%s\n" "$data_signal" "$data_freq" "$data_ssid" >> /tmp/results.$$
+            data_freq=""
+            data_signal=""
+            data_ssid=""
+        fi
     done
 
-    # If sorting send to data_sort with $n number of stations.
-    if [ "$sort_data" = 1 ] && [ "$resort" = 0 ]; then
-        data_sort "$n"
-    else
-        resort=0
+    # Sort results by signal strength in descending order (numeric, reverse)
+    # Use 'sort -rn' where -n is for numeric sort and -r is for reverse
+    if [ -s /tmp/results.$$ ]; then
+        sorted_results=$(sort -rn /tmp/results.$$)
+        rm -f /tmp/results.$$
+
+        # Process and print sorted results
+        echo "$sorted_results" | while IFS=',' read s f ss; do
+            # Handle case where SSID is missing
+            [ -z "$ss" ] && ss="<hidden>"
+
+            # Truncate SSID if longer than 30 characters
+            ss_len=$(echo -n "$ss" | wc -c)
+            [ "$ss_len" -gt 30 ] && ss=$(echo -n "$ss" | head -c 26)
+
+            # Print the output if all fields are present
+            if [ "$num_lines" ] && [ "$n" -gt "$num_lines" ]; then break; fi
+            [ -n "$s" ] && [ -n "$f" ] && get_output "$s" "$ss" "$f"
+            # uncomment to test scan parse only
+            # [ -n "$s" ] && [ -n "$f" ] && echo "signal: $s, freq: $f, SSID: $ss"
+            
+            n=$((n + 1))
+            
+        done
     fi
 }
-
-# Re-format the station data to be sent back through the
-# "parse_scan" function sorted by signal strength.
-reformat() {
-    local i
-    data=''
-
-    for i in "$@"; do
-        data="$data signal: $1 freq: $2 SSID: $3"
-        shift 3
-        if [ ! "$1" ]; then break; fi
-    done
-}
-
-# Take $line{n} variables sort
-# and reformat for parsing again.
-data_sort() {
-    local n=$1
-    local output=''
-    local sort_items=''
-
-    while [ "$n" -gt 1 ]; do
-        n=$((n - 1))
-        output=$output$(eval "echo \${line$n}'\n'")
-    done
-
-    sort_items=$(echo -ne "$output" | sort -rn)
-
-    reformat $sort_items
-
-    resort=1
-    parse_scan $data
-}
-
 
 # Header for monitor link.
 get_header() {
@@ -340,7 +309,8 @@ while true; do
         clear
         header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-10s\n"
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "SSID"
-        parse_scan $scan_data
+        # Parse the scan data
+    echo "$scan_data" | parse_scan
     else
         rssi=$(iw dev "$net" link | grep signal || echo $?)
         if [ "$rssi" != "1" ]; then
