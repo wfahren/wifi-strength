@@ -1,12 +1,12 @@
 #!/bin/sh
 #
-#File name: wifi-strength.bash
-#Description: This script scans for "masters" and displays wifi signal strength
-# with a text based bar graph.
-#Version 1.1v 09/7/2020
-#2020 Bill Fahrenkrug -  bill.fahrenkrug@gmail.com
+# File name: wifi-strength.sh
+# Description: This script scans for "masters" and displays wifi signal strength
+# with a text-based bar graph.
+# Version 1.1v 09/7/2020
+# 2020 Bill Fahrenkrug - bill.fahrenkrug@gmail.com
 #
-# Script Dependency: B{ASH} like shell and iw. No other package requirements.
+# Script Dependency: BASH-like shell and iw. No other package requirements.
 #
 # The SSID and signal strength are from iw output, others are
 # calculated like Quality and GOOD/BAD signal.
@@ -16,15 +16,15 @@
 #  iw scan command requires root access
 
 # Set Defaults
-strenght_str='#'  # default pound sign
+strength_str='#'  # default pound sign
 bar_len='50'      # default 50
 bar_fill_char=' ' # default space
 num_lines=''      # number of lines to display
 scan=1            # scan for AP's
-passive=''        # scan type, defaultt active scan
+passive=""        # scan type, default active scan
 scan_interval='5' # scan interval, default 5 seconds
 
-#must provide the network interface, wlan0 for example
+# Must provide the network interface, wlan0 for example
 if [ $# -lt 1 ]; then
     echo -ne "
  Usage: \"$(basename -- "$0") [options] [interface]\"
@@ -39,11 +39,8 @@ fi
 
 # Parse command line options and ignore invalid.
 parse_options() {
-
-    #for arg in "$@"; do
-    while [ $# -gt 0 ]; do
-    key="$1"
-
+    while [ $# -gt 1 ]; do
+        key="$1"
         case "$key" in
             -h)
                 usage_txt
@@ -54,18 +51,15 @@ parse_options() {
                 ;;
             -n)
                 num_lines="$2"
-                shift
-                shift
+                shift 2
                 ;;
             -i)
                 scan_interval="$2"
-                shift
-                shift
+                shift 2
                 ;;
             -l)
-                if  echo "$2" | grep -qE "^[1-9][0-9]?$|^100$"; then bar_len="$2"; fi
-                shift
-                shift
+                if echo "$2" | grep -qE "^[1-9][0-9]?$|^100$"; then bar_len="$2"; fi
+                shift 2
                 ;;
             -p)
                 passive="passive"
@@ -76,19 +70,12 @@ parse_options() {
                 usage_txt
                 ;;
         esac
-
-        #Last arg is the network interface, required.
-        #net=$arg
-
     done
-
     net="${1:-}"
-
 }
 
 # Help text
 usage_txt() {
-
     script=$(basename -- "$0")
     echo -ne "
 Usage: $script [options] <interface>
@@ -110,7 +97,7 @@ Example:
 
 \t$script -l 10 wlan1
 
-  Monitor client connetion on interface wlan1
+  Monitor client connection on interface wlan1
 
 \t$script -m wlan1
 
@@ -137,7 +124,7 @@ get_strength_bar() {
     strength=${v// /$char}${s// /$fill_char}
 }
 
-#  Parse the signal level, frequency and SSID from "iw dev scan".
+# Clean string by removing carriage returns and leading/trailing spaces
 clean_string() {
     local string="$1"
     echo "$string" | tr -d '\r\n' | sed 's/^[ \t]*//'
@@ -151,7 +138,7 @@ parse_scan() {
     n=1
 
     # Read each line from the input (scan data)
-    while IFS= read line; do
+    while IFS= read -r line; do
         # Clean the line
         line=$(clean_string "$line")
         # Parse based on key
@@ -174,14 +161,12 @@ parse_scan() {
     done
 
     # Sort results by signal strength in descending order (numeric, reverse)
-    # Use 'sort -rn' where -n is for numeric sort and -r is for reverse
     if [ -s /tmp/results.$$ ]; then
         sorted_results=$(sort -rn /tmp/results.$$)
         rm -f /tmp/results.$$
 
         # Process and print sorted results
-        echo "$sorted_results" | while IFS=',' read s f bs ss; do
-
+        echo "$sorted_results" | while IFS=',' read -r s f bs ss; do
             # Truncate SSID if longer than 30 characters
             ss_len=$(echo -n "$ss" | wc -c)
             [ "$ss_len" -gt 30 ] && ss=$(echo -n "$ss" | head -c 26)
@@ -189,11 +174,7 @@ parse_scan() {
             # Print the output if all fields are present
             if [ "$num_lines" ] && [ "$n" -gt "$num_lines" ]; then break; fi
             [ -n "$s" ] && [ -n "$f" ] && get_output "$s" "$ss" "$f" "$bs"
-            # uncomment to test scan parse only
-            # [ -n "$s" ] && [ -n "$f" ] && echo "signal: $s, freq: $f, SSID: $ss"
-            
             n=$((n + 1))
-            
         done
     fi
 }
@@ -206,36 +187,7 @@ get_header() {
     printf "$header" "" "Signal" "Quality" "Bandwidth"
 }
 
-# Take the signal strength $rssi calculate quality based on below from OpenWRt
-# iwinfo source with -40 dBm 100% and -110 0%.
-#
-# GOOD/BAD link quality is based on research, but can easily be change below.
-#
-
-# From openWRT source iwinfo command:
-#
-#----------------------------------------------------------------------------------#
-##$iwinfo_nl80211.c-2595-            /* Quality */
-##iwinfo_nl80211.c-2596-          if (rssi < 0)
-##iwinfo_nl80211.c-2597-          {
-##iwinfo_nl80211.c-2598-              /* The cfg80211 wext compat layer assumes a signal range
-##iwinfo_nl80211.c:2599:               * of -110 dBm to -40 dBm, the quality value is derived
-##iwinfo_nl80211.c-2600-               * by adding 110 to the signal level */
-##iwinfo_nl80211.c:2601:              if (rssi < -110)
-##iwinfo_nl80211.c:2602:                  rssi = -110;
-##iwinfo_nl80211.c-2603-              else if (rssi > -40)
-##iwinfo_nl80211.c-2604-                  rssi = -40;
-##iwinfo_nl80211.c-2605-
-##iwinfo_nl80211.c-2606-              e->quality = (rssi + 110);
-##iwinfo_nl80211.c-2607-          }
-##iwinfo_nl80211.c-2608-          else
-##iwinfo_nl80211.c-2609-          {
-##iwinfo_nl80211.c-2610-              e->quality = rssi;
-##iwinfo_nl80211.c-2611-          }
-#---------------------------------------------------------------------------------#
-
-# Calculate quality and range from Strong to Bad. Format the output for
-# display.
+# Calculate quality and range from Strong to Bad. Format the output for display.
 get_output() {
     rssi=$1
     ssid=$2
@@ -257,11 +209,11 @@ get_output() {
     fi
 
     if [ "$rssi" -lt -110 ]; then
-        siginal='-110'
+        signal='-110'
     elif [ "$rssi" -gt -40 ]; then
-        siginal='-40'
+        signal='-40'
     else
-        siginal=$rssi
+        signal=$rssi
     fi
 
     if [ "$rssi" = 0 ]; then
@@ -269,8 +221,8 @@ get_output() {
         bw=''
         quality=''
     else
-        quality=$(((siginal + 110) * 10 / 7)) # Quality as percentage max -40 min -110
-        get_strength_bar "$strenght_str" "$quality" "$bar_len"
+        quality=$(((signal + 110) * 10 / 7)) # Quality as percentage max -40 min -110
+        get_strength_bar "$strength_str" "$quality" "$bar_len"
     fi
 
     if [ "$scan" = 0 ]; then
@@ -283,16 +235,16 @@ get_output() {
     fi
 }
 
-#main
-
-echo $1
+# Main
 if [ $# = 1 ] && [ ! "$1" = "-h" ]; then
     net=$1
+elif [ "$1" = "-h" ]; then
+    usage_txt
 else
     parse_options "$@"
 fi
 
-#check that interface is valid
+# Check that interface is valid
 if ! iw dev 2> /dev/null | grep -q "Interface $net"; then
     echo -ne "\n\tInterface $net not found\n\n"
     exit
@@ -300,14 +252,20 @@ fi
 
 # Loop until ctrl-C
 while true; do
-
     if [ "$scan" = 1 ]; then
         echo -ne "\nScanning on $net.................\n"
         echo -ne "\nPress ctrl-c to quit\n"
-        scan_data=$(iw dev "$net" scan "$passive" 2>/dev/null || echo $?) 
+        if [ "$passive" ]; then
+            echo -ne "\nPassive scan\n"
+            scan_data=$(iw dev "$net" scan passive 2>/dev/null || echo $?) 
+        else
+            echo -ne "\nActive scan\n"
+            scan_data=$(iw dev "$net" scan 2>/dev/null || echo $?) 
+        fi
+        
         sleep "$scan_interval" # give time for scan to complete
         if [ ${#scan_data} -gt 3 ]; then
-            scan_data=$(echo "$scan_data" | grep  -E 'freq:|signal:|SSID:|^BSS' )
+            scan_data=$(echo "$scan_data" | grep -E 'freq:|signal:|SSID:|^BSS')
         elif [ "$scan_data" -eq "255" ]; then
             echo -ne "\n\n\tMust be root to run\n"\
             "\tEither change to user root or use sudo\n\n"
@@ -316,7 +274,7 @@ while true; do
             echo -ne "\n\n\tWireless interface busy trying again in 5 seconds\n\n"
             sleep 5
             continue
-         fi
+        fi
         clear
         header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-17s | %-10s\n"
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "BSSID" "SSID"
@@ -334,7 +292,6 @@ while true; do
             break
         fi
     fi
-
 done
 
 exit
