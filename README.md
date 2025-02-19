@@ -20,8 +20,7 @@ Example:
 
 	wifi-strength.sh wlan1
 
- ![image](https://github.com/user-attachments/assets/42aaace6-8a55-4917-a7e3-f72b24500c59)
-
+ ![image](https://github.com/user-attachments/assets/dc398372-ce7b-4853-a795-32efba82aa69)
 
 
   Scan AP's on interface wlan1 and set strength bar length to 80;
@@ -32,6 +31,7 @@ Example:
 
 	wifi-strength.sh -m wlan1
 
-![image](https://github.com/user-attachments/assets/7408c43a-432c-4dd1-9ad4-e7fc062ca02f)
+![image](https://github.com/user-attachments/assets/30ed3dd9-882b-42c4-a982-7697a92a84f9)
+
  
 
