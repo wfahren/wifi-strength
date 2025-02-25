@@ -22,15 +22,15 @@ Script Dedency: B{ASH} like shell and iw. No other package requirements. Must be
 	Example:
 	  Scan for "masters" on interface wlan1;
 	
-		wifi-strength.sh wlan1
+		wifi-strength.sh wlp4s0
 	
 	  Scan AP's on wlan1 set strength bar length to 10;
 	
-		wifi-strength.sh -l 10 wlan1
+		wifi-strength.sh -l 10 wlp4s0
 	
 	  Monitor client connection on interface wlan1
 	
-		wifi-strength.sh -m wlan1
+		wifi-strength.sh -m wlp4s0
 	
 	
 	Interfaces found:
