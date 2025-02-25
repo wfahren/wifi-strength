@@ -15,15 +15,14 @@ Usage: wifi-strength.sh [options] \<interface\>
   	-n	Display x number of lines
   	-i	Set scan interval, default 5 seconds
   	-l	Length of strength bar, range 1-100, Default 50
-  	-p	Passive scan, default active scan
+  	-a	Active scan, default passive scan. (Active scan sends Beacon's)
 
 Example:
   Scan AP's on interface wlan1;
 
 	wifi-strength.sh wlan1
 
- ![image](https://github.com/user-attachments/assets/dc398372-ce7b-4853-a795-32efba82aa69)
-
+ ![image](https://github.com/user-attachments/assets/34148ee3-3a3b-4e61-aa59-83897fb0da1f)
 
   Scan AP's on interface wlan1 and set strength bar length to 80;
 
@@ -33,7 +32,8 @@ Example:
 
 	wifi-strength.sh -m wlan1
 
-![image](https://github.com/user-attachments/assets/30ed3dd9-882b-42c4-a982-7697a92a84f9)
+![image](https://github.com/user-attachments/assets/695896d8-3edc-4e15-89dd-fdbdf44191e0)
+
 
  
 
