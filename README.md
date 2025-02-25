@@ -47,9 +47,11 @@ Example:
 
  ![image](https://github.com/user-attachments/assets/34148ee3-3a3b-4e61-aa59-83897fb0da1f)
 
-  Scan AP's on interface wlp4s0 and set strength bar length to 80;
+  Scan AP's on interface wlp4s0 and set strength bar length to 10 and filter on Whisp and MESH;
 
-	wifi-strength.sh -l 80 wlp4s0
+	wifi-strength.sh -l 10 -f 'Whisp|MESH' wlp4s0
+ ![image](https://github.com/user-attachments/assets/2aa4e207-defe-4e05-a50f-353110b095ba)
+
 
   Monitor station connection on interface wlp4s0 (connected to another AP)
 
