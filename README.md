@@ -19,6 +19,8 @@ Script Dedency: B(ASH) like shell and iw. No other package requirements. Must be
 	  -i	Set scan interval, default 5 seconds
 	  -l	Length of strength bar, range 1-100, Default 50
 	  -a	Active scan, default passive scan. (Active scan sends Beacon's) 
+   	  -f	Filter results, use extended grep pattern. Example: -f 'Whispering|MESH'
+
 	Example:
 	  Scan for "masters" on interface wlan1;
 	
@@ -55,6 +57,11 @@ Example:
 
 ![image](https://github.com/user-attachments/assets/695896d8-3edc-4e15-89dd-fdbdf44191e0)
 
-   wifi-strength.sh -f 'Whisp|MESH' wlp4s0
- 
+Filter output using regex, example of filtering on anything that contains Whisp or MESH
+case sensitive.
+
+   	wifi-strength.sh -f 'Whisp|MESH' wlp4s0
+    
+ ![image](https://github.com/user-attachments/assets/85c0b768-8e50-4afc-a760-4653eef32682)
+
 
