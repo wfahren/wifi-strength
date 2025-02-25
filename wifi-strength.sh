@@ -21,7 +21,7 @@ bar_len='50'      # default 50
 bar_fill_char=' ' # default space
 num_lines=''      # number of lines to display
 scan=1            # scan for AP's
-passive=""        # scan type, default active scan
+passive=1        # scan type, default active scan
 scan_interval='5' # scan interval, default 5 seconds
 
 # Must provide the network interface, wlan0 for example
@@ -61,8 +61,8 @@ parse_options() {
                 if echo "$2" | grep -qE "^[1-9][0-9]?$|^100$"; then bar_len="$2"; fi
                 shift 2
                 ;;
-            -p)
-                passive="passive"
+            -a)
+                passive=0
                 shift
                 ;;
             *)
@@ -87,7 +87,7 @@ Usage: $script [options] <interface>
   -n\tDisplay x number of lines
   -i\tSet scan interval, default 5 seconds
   -l\tLength of strength bar, range 1-100, Default 50
-  -p\tPassive scan, default active scan
+  -a\tActive scan, default passive scan. (Active scan sends Beacon's) 
 Example:
   Scan for \"masters\" on interface wlan1;
 
@@ -131,38 +131,80 @@ clean_string() {
 }
 
 # Function to parse options from scan data
+check_complete() {
+            # If no SSID or Mesh ID but other fields are set, assume hidden and finalize
+            if [ -n "$data_bssid" ] && [ -n "$data_freq" ] && [ -n "$data_signal" ] && [ -n "$data_ssid" ]; then
+                printf "%s,%s,%s,%s\n" "$data_signal" "$data_freq" "$data_bssid" "$data_ssid" >> /tmp/results.$$
+                # echo "MAC: $data_bssid | Freq: $data_freq MHz | Signal: $data_signal dBm | SSID: $data_ssid"
+                data_freq=""
+                data_signal=""
+                data_ssid=""
+                if [ -n "$new_bssid" ]; then
+                    data_bssid="$new_bssid"
+                    new_bssid=""
+                else
+                    data_bssid=""
+                fi
+            fi
+        
+}
+# Function to parse options from scan data
 parse_scan() {
     data_freq=""
     data_signal=""
     data_ssid=""
+    data_bssid=""
     n=1
 
     # Read each line from the input (scan data)
     while IFS= read -r line; do
         # Clean the line
         line=$(clean_string "$line")
-        # Parse based on key
-        echo "$line" | grep -q "^BSS" && data_bssid=$(echo "$line" | grep -oE '[0-9a-fA-F:]{17}')
-        echo "$line" | grep -q "^freq:" && data_freq=$(echo "$line" | awk '{print int($2)}')
-        echo "$line" | grep -q "^signal:" && data_signal=$(echo "$line" | awk '{print int($2)}')
-        echo "$line" | grep -q "^SSID:" && data_ssid=$(echo "$line" | cut -d' ' -f2-)
 
-        # Handle case where SSID is missing, and set to <hidden>       
-        [ -z "$data_ssid" ] && data_ssid="<hidden>"
+        # Skip empty lines
+        [ -z "$line" ] && continue
 
-        # If all four entries are present, append to results and reset
-        if [ -n "$data_bssid" ] && [ -n "$data_freq" ] && [ -n "$data_signal" ] && [ -n "$data_ssid" ]; then
-            printf "%s,%s,%s,%s\n" "$data_signal" "$data_freq" "$data_bssid" "$data_ssid" >> /tmp/results.$$
-            data_bssid=""
-            data_freq=""
-            data_signal=""
-            data_ssid=""
+        # Parse based on key. BSSI, freq, signal are maditory keys.
+        if [ -z "$data_bssid" ]; then
+            echo "$line" | grep -q "^BSS" && data_bssid=$(echo "$line" | grep -oE '[0-9a-fA-F:]{17}')
+            [ -n "$data_bssid" ] && continue
+        fi
+
+        if [ -z "$data_freq" ]; then
+            echo "$line" | grep -q "^freq:" && data_freq=$(echo "$line" | grep -oE '[0-9]+\.[0-9]+' | head -n1)
+            [ -n "$data_freq" ] && continue
+        fi
+
+        if [ -z "$data_signal" ]; then
+            echo "$line" | grep -q "^signal:" && data_signal=$(echo "$line" | awk '{print int($2)}')
+            [ -n "$data_signal" ] && continue
+        fi
+
+        # After the three maditory keys have been parsed, 
+        # Check the line to see if a new station, if so we save.
+        if echo "$line" | grep -q "^BSS" && check_bssid=$(echo "$line" | grep -oE '[0-9a-fA-F:]{17}');then
+            new_bssid="$check_bssid"
+        fi
+        # Now we need to set the SSID
+        # If the line contains "SSID:" or "MESH ID:" then set the SSID to that.
+        if echo "$line" | grep -q "MESH ID:"; then
+            data_ssid=$(echo "$line" | awk '{print "MESH ID: " $3}')
+            check_complete
+        elif echo "$line" | grep -q "^SSID:"; then
+            data_ssid=$(echo "$line" | cut -d' ' -f2-)
+            check_complete
+        # Default to hidden if no SSID or MESH ID is found.
+        else
+            data_ssid="<hidden>"
+            check_complete
         fi
     done
 
+ 
     # Sort results by signal strength in descending order (numeric, reverse)
     if [ -s /tmp/results.$$ ]; then
-        sorted_results=$(sort -rn /tmp/results.$$)
+        sorted_results=$(sort -rn /tmp/results.$$ && echo "")
+        # num_lines=$(wc -l < /tmp/results.$$)
         rm -f /tmp/results.$$
 
         # Process and print sorted results
@@ -253,29 +295,55 @@ fi
 # Loop until ctrl-C
 while true; do
     if [ "$scan" = 1 ]; then
-        echo -ne "\nScanning on $net.................\n"
-        echo -ne "\nPress ctrl-c to quit\n"
-        if [ "$passive" ]; then
-            echo -ne "\nPassive scan\n"
-            scan_data=$(iw dev "$net" scan passive 2>/dev/null || echo $?) 
-        else
-            echo -ne "\nActive scan\n"
-            scan_data=$(iw dev "$net" scan 2>/dev/null || echo $?) 
-        fi
         
-        sleep "$scan_interval" # give time for scan to complete
-        if [ ${#scan_data} -gt 3 ]; then
-            scan_data=$(echo "$scan_data" | grep -E 'freq:|signal:|SSID:|^BSS')
-        elif [ "$scan_data" -eq "255" ]; then
+        echo -ne "\nPress ctrl-c to quit\n"
+        echo -ne "Scanning on $net.................\n"
+
+        if [ $passive -eq 1 ]; then
+            # If passive scan is set, passive (don't send Beacon's) scan for AP's
+            echo -ne "Passive scan\n"
+            scan_data=$(iw dev "$net" scan passive 2>/dev/null && printf "\nExitCode: %03d\n" $? || printf "\nExitCode: %03d\n" $?) 
+        else
+            # If passive scan is not set, active scan for AP's
+            echo -ne "Active scan\n"
+            scan_data=$(iw dev "$net" scan 2>/dev/null && printf "\nExitCode: %03d\n" $? || printf "\nExitCode: %03d\n" $?)
+        fi
+
+        # The "$scan_interval" # allows time for scan to complete and we don't want to overload the interface
+        # never should be less than 5 seconds. 
+        sleep "$scan_interval"
+        
+        # Get the exit code for the scan data, it will be on the last line
+        exit_code=$(echo "$scan_data" | tail -n 1 | awk '{print $2}')
+        # echo -ne "\n\nExit code:   ""$exit_code""\n\n"
+        # If the exit code is 0, the scan data is valid
+        if [ "$exit_code" -eq "0" ]; then
+            scan_data=$(echo "$scan_data" | grep -E '^BSS|freq:|signal:|SSID:|MESH ID')
+        # If the exit code is 255, the user must be root to run the script
+        elif [ "$exit_code" -eq "255" ]; then
+            scan_data=$(echo "$scan_data" | grep -v "ExitCode")
             echo -ne "\n\n\tMust be root to run\n"\
             "\tEither change to user root or use sudo\n\n"
             break
+            # If the exit code is 237, the wireless interface not found
+        elif [ "$exit_code" -eq "237" ]; then
+            scan_data=$(echo "$scan_data" | grep -v "ExitCode")
+            echo -ne "\n\tInterface device ""$net"" not connected.\n\n"
+            break
+            # If the exit code is 1, the iw command returned an error
+        elif [ "$exit_code" -eq "1" ]; then
+            scan_data=$(echo "$scan_data" | grep -v "ExitCode")  
+            echo -ne "\n\n\tiw command failed, or error returned from the iw command\n\n"          
+            break
         else
+            # If the exit code is not 0, 255, or 1, the wireless interface is busy
+            scan_data=$(echo "$scan_data" | grep -v "ExitCode")
             echo -ne "\n\n\tWireless interface busy trying again in 5 seconds\n\n"
             sleep 5
             continue
         fi
         clear
+        # echo -ne "\n\n""$exit_code""\n\n"
         header="\n%"$((bar_len + 9))"s |%5s |%8s |%10s | %-17s | %-10s\n"
         printf "$header" "Signal" "dBm" "Quality" "Frequency" "BSSID" "SSID"
         # Parse the scan data
