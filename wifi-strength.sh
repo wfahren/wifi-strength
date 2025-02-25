@@ -135,10 +135,11 @@ check_complete() {
             # If no SSID or Mesh ID but other fields are set, assume hidden and finalize
             if [ -n "$data_bssid" ] && [ -n "$data_freq" ] && [ -n "$data_signal" ] && [ -n "$data_ssid" ]; then
                 printf "%s,%s,%s,%s\n" "$data_signal" "$data_freq" "$data_bssid" "$data_ssid" >> /tmp/results.$$
-                # echo "MAC: $data_bssid | Freq: $data_freq MHz | Signal: $data_signal dBm | SSID: $data_ssid"
+                # Reset variables
                 data_freq=""
                 data_signal=""
                 data_ssid=""
+                # If new BSSID is set, set it to the current BSSID
                 if [ -n "$new_bssid" ]; then
                     data_bssid="$new_bssid"
                     new_bssid=""
@@ -164,14 +165,14 @@ parse_scan() {
         # Skip empty lines
         [ -z "$line" ] && continue
 
-        # Parse based on key. BSSI, freq, signal are maditory keys.
+        # Parse based on key. BSSI, freq, signal are mandatory keys.
         if [ -z "$data_bssid" ]; then
             echo "$line" | grep -q "^BSS" && data_bssid=$(echo "$line" | grep -oE '[0-9a-fA-F:]{17}')
             [ -n "$data_bssid" ] && continue
         fi
 
         if [ -z "$data_freq" ]; then
-            echo "$line" | grep -q "^freq:" && data_freq=$(echo "$line" | grep -oE '[0-9]+\.[0-9]+' | head -n1)
+            echo "$line" | grep -q "^freq:" && data_freq=$(echo "$line" | grep -oE '[0-9]+')
             [ -n "$data_freq" ] && continue
         fi
 
@@ -180,9 +181,9 @@ parse_scan() {
             [ -n "$data_signal" ] && continue
         fi
 
-        # After the three maditory keys have been parsed, 
+        # After the three mandatory keys have been parsed, 
         # Check the line to see if a new station, if so we save.
-        if echo "$line" | grep -q "^BSS" && check_bssid=$(echo "$line" | grep -oE '[0-9a-fA-F:]{17}');then
+        if echo "$line" | grep -q "^BSS" && check_bssid=$(echo "$line" | grep -oE '[0-9a-fA-F:]{17}'); then
             new_bssid="$check_bssid"
         fi
         # Now we need to set the SSID
@@ -200,11 +201,9 @@ parse_scan() {
         fi
     done
 
- 
     # Sort results by signal strength in descending order (numeric, reverse)
     if [ -s /tmp/results.$$ ]; then
         sorted_results=$(sort -rn /tmp/results.$$ && echo "")
-        # num_lines=$(wc -l < /tmp/results.$$)
         rm -f /tmp/results.$$
 
         # Process and print sorted results
