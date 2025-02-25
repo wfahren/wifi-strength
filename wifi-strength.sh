@@ -208,8 +208,10 @@ parse_scan() {
  
     # Sort results by signal strength in descending order (numeric, reverse)
     if [ -s /tmp/results.$$ ]; then
-        filtered_results=$(grep -Ei "$filter" /tmp/results.$$)
+        # Filter results if filter is set
+        [ -n "$filter" ] && filtered_results=$(grep -Ei "$filter" /tmp/results.$$)
         [ -n "$filtered_results" ] && echo "$filtered_results" > /tmp/results.$$
+        # Sort results
         sorted_results=$(sort -rn /tmp/results.$$ && echo "")
         rm -f /tmp/results.$$
 
