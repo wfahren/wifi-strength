@@ -65,6 +65,10 @@ parse_options() {
                 passive=0
                 shift
                 ;;
+            -f)
+                filter="$2"
+                shift 2
+                ;;
             *)
                 echo -ne "\n\nInvalid option: $key\n\n"
                 usage_txt
@@ -87,7 +91,8 @@ Usage: $script [options] <interface>
   -n\tDisplay x number of lines
   -i\tSet scan interval, default 5 seconds
   -l\tLength of strength bar, range 1-100, Default 50
-  -a\tActive scan, default passive scan. (Active scan sends Beacon's) 
+  -a\tActive scan, default passive scan. (Active scan sends Beacon's)
+  -f\tFilter results, use extended grep pattern. Example: -f 'Whispering|MESH'
 Example:
   Scan for \"masters\" on interface wlan1;
 
@@ -203,6 +208,8 @@ parse_scan() {
  
     # Sort results by signal strength in descending order (numeric, reverse)
     if [ -s /tmp/results.$$ ]; then
+        filtered_results=$(grep -E "$filter" /tmp/results.$$)
+        [ -n "$filtered_results" ] && echo "$filtered_results" > /tmp/results.$$
         sorted_results=$(sort -rn /tmp/results.$$ && echo "")
         rm -f /tmp/results.$$
 

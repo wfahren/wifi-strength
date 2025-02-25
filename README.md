@@ -55,6 +55,6 @@ Example:
 
 ![image](https://github.com/user-attachments/assets/695896d8-3edc-4e15-89dd-fdbdf44191e0)
 
-
+   wifi-strength.sh -f 'Whisp|MESH' wlp4s0
  
 
