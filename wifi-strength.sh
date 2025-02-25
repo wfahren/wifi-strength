@@ -172,7 +172,7 @@ parse_scan() {
         fi
 
         if [ -z "$data_freq" ]; then
-            echo "$line" | grep -q "^freq:" && data_freq=$(echo "$line" | grep -oE '[0-9]+')
+            echo "$line" | grep -q "^freq:" && data_freq=$(echo "$line" | grep -oE '[0-9]+\.[0-9]+' | head -n1)
             [ -n "$data_freq" ] && continue
         fi
 
@@ -200,7 +200,7 @@ parse_scan() {
             check_complete
         fi
     done
-
+ 
     # Sort results by signal strength in descending order (numeric, reverse)
     if [ -s /tmp/results.$$ ]; then
         sorted_results=$(sort -rn /tmp/results.$$ && echo "")
