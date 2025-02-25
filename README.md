@@ -1,7 +1,7 @@
 # wifi-strength.sh
 <h4>Small shell script to scan for 802.11 AP's or monitor a connected link with text based bar graph. Designed to work with openWrt</h2>
 
-Script Dedency: B{ASH} like shell and iw. No other package requirements. Must be ran as user root or sudo. The iw scan command requires root access.
+Script Dedency: B(ASH) like shell and iw. No other package requirements. Must be ran as user root or sudo. The iw scan command requires root access.
 
 ---
 ### Help 
