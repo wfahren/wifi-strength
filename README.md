@@ -39,17 +39,17 @@ Script Dedency: B(ASH) like shell and iw. No other package requirements. Must be
 
 
 Example:
-  Scan AP's on interface wlan1;
+  Scan AP's on interface wlp4s0;
 
 	wifi-strength.sh wlp4s0
 
  ![image](https://github.com/user-attachments/assets/34148ee3-3a3b-4e61-aa59-83897fb0da1f)
 
-  Scan AP's on interface wlan1 and set strength bar length to 80;
+  Scan AP's on interface wlp4s0 and set strength bar length to 80;
 
 	wifi-strength.sh -l 80 wlp4s0
 
-  Monitor station connection on interface wlan1 (connected to another AP)
+  Monitor station connection on interface wlp4s0 (connected to another AP)
 
 	wifi-strength.sh -m wlp4s0
 
